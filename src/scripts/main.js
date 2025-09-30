@@ -1,323 +1,330 @@
 'use strict';
 
-const parseSalary = (text) => {
-  const n = Number(text.replace(/[$,\s]/g, ''));
+document.addEventListener('DOMContentLoaded', () => {
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-  return Number.isFinite(n) ? n : NaN;
-};
-
-const formatSalary = (num) => `$${Number(num).toLocaleString('en-US')}`;
-
-const table = document.querySelector('table');
-const thead = table.querySelector('thead');
-const tbody = table.querySelector('tbody');
-
-let lastSortedCol = -1;
-let isAsc = true;
-
-const getCellValue = (tr, colIdx) => {
-  const text = tr.cells[colIdx].textContent.trim();
-
-  if (colIdx === 3) {
-    return Number(text);
-  }
-
-  if (colIdx === 4) {
-    const v = parseSalary(text);
-
-    return Number.isFinite(v) ? v : 0;
-  }
-
-  return text.toLowerCase();
-};
-
-const sortByColumn = (colIdx, asc) => {
-  const rows = Array.from(tbody.rows);
-
-  rows.sort((a, b) => {
-    const v1 = getCellValue(a, colIdx);
-    const v2 = getCellValue(b, colIdx);
-
-    if (v1 < v2) {
-      return asc ? -1 : 1;
+  const moneyToText = (value) => {
+    if (value === '' || value == null || isNaN(+value)) {
+      return '';
     }
 
-    if (v1 > v2) {
-      return asc ? 1 : -1;
-    }
-
-    return 0;
-  });
-  rows.forEach((tr) => tbody.appendChild(tr));
-};
-
-thead.addEventListener('click', (e) => {
-  const th = e.target.closest('th');
-
-  if (!th) {
-    return;
-  }
-
-  const colIdx = Array.from(thead.querySelectorAll('th')).indexOf(th);
-
-  if (colIdx === lastSortedCol) {
-    isAsc = !isAsc;
-  } else {
-    lastSortedCol = colIdx;
-    isAsc = true;
-  }
-  sortByColumn(colIdx, isAsc);
-});
-
-tbody.addEventListener('click', (e) => {
-  const tr = e.target.closest('tr');
-
-  if (!tr) {
-    return;
-  }
-  Array.from(tbody.rows).forEach((row) => row.classList.remove('active'));
-  tr.classList.add('active');
-});
-
-const showNotification = (type, title, text) => {
-  const box = document.createElement('div');
-
-  box.setAttribute('data-qa', 'notification');
-  box.className = type;
-  box.innerHTML = `<strong>${title}</strong><div>${text}</div>`;
-  document.body.append(box);
-  setTimeout(() => box.remove(), 3000);
-};
-
-const offices = [
-  'Tokyo',
-  'Singapore',
-  'London',
-  'New York',
-  'Edinburgh',
-  'San Francisco',
-];
-
-const buildLabeledInput = (labelText, input) => {
-  const label = document.createElement('label');
-
-  label.textContent = `${labelText}: `;
-  label.append(input);
-
-  return label;
-};
-
-const createForm = () => {
-  const form = document.createElement('form');
-
-  form.className = 'new-employee-form';
-  form.noValidate = true;
-
-  const title = document.createElement('h2');
-
-  title.textContent = 'New employee';
-
-  const inputName = document.createElement('input');
-
-  inputName.name = 'name';
-  inputName.type = 'text';
-  inputName.required = true;
-  inputName.setAttribute('data-qa', 'name');
-
-  const inputPosition = document.createElement('input');
-
-  inputPosition.name = 'position';
-  inputPosition.type = 'text';
-  inputPosition.required = true;
-  inputPosition.setAttribute('data-qa', 'position');
-
-  const inputAge = document.createElement('input');
-
-  inputAge.name = 'age';
-  inputAge.type = 'number';
-  inputAge.required = true;
-  inputAge.setAttribute('data-qa', 'age');
-
-  const inputSalary = document.createElement('input');
-
-  inputSalary.name = 'salary';
-  inputSalary.type = 'number';
-  inputSalary.required = true;
-  inputSalary.setAttribute('data-qa', 'salary');
-
-  const selectOffice = document.createElement('select');
-
-  selectOffice.name = 'office';
-  selectOffice.required = true;
-  selectOffice.setAttribute('data-qa', 'office');
-
-  offices.forEach((city) => {
-    const opt = document.createElement('option');
-
-    opt.value = city;
-    opt.textContent = city;
-    selectOffice.append(opt);
-  });
-
-  const labelName = buildLabeledInput('Name', inputName);
-  const labelPosition = buildLabeledInput('Position', inputPosition);
-  const labelOffice = buildLabeledInput('Office', selectOffice);
-  const labelAge = buildLabeledInput('Age', inputAge);
-  const labelSalary = buildLabeledInput('Salary', inputSalary);
-
-  const submit = document.createElement('button');
-
-  submit.type = 'submit';
-  submit.textContent = 'Save to table';
-
-  form.append(
-    title,
-    labelName,
-    labelPosition,
-    labelOffice,
-    labelAge,
-    labelSalary,
-    submit,
-  );
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const rawName = inputName.value.trim();
-    const rawPosition = inputPosition.value.trim();
-    const rawAge = inputAge.value.trim();
-    const rawSalary = inputSalary.value.trim();
-    const rawOffice = selectOffice.value.trim();
-
-    if (!rawName || !rawPosition || !rawAge || !rawSalary || !rawOffice) {
-      showNotification('error', 'Validation error', 'All fields are required');
-
-      return;
-    }
-
-    const empAge = Number(rawAge);
-    const empSalary = Number(rawSalary);
-
-    if (rawName.length < 4) {
-      showNotification(
-        'error',
-        'Invalid name',
-        'Name must be at least 4 characters',
-      );
-
-      return;
-    }
-
-    if (!Number.isFinite(empAge) || empAge < 18 || empAge > 90) {
-      showNotification('error', 'Invalid age', 'Age must be between 18 and 90');
-
-      return;
-    }
-
-    if (!Number.isFinite(empSalary)) {
-      showNotification('error', 'Invalid salary', 'Salary must be a number');
-
-      return;
-    }
-
-    const tr = document.createElement('tr');
-
-    [
-      rawName,
-      rawPosition,
-      rawOffice,
-      String(empAge),
-      formatSalary(empSalary),
-    ].forEach((txt) => {
-      const td = document.createElement('td');
-
-      td.textContent = txt;
-      tr.append(td);
-    });
-    tbody.append(tr);
-
-    form.reset();
-    showNotification('success', 'Added', 'Employee added to the table');
-  });
-
-  return form;
-};
-
-table.after(createForm());
-
-let editing = null;
-
-const startEdit = (td) => {
-  if (editing) {
-    finishEdit(true);
-  }
-
-  const colIdx = td.cellIndex;
-  const initial = td.textContent.trim();
-  const input = document.createElement('input');
-
-  input.className = 'cell-input';
-  input.type = colIdx === 3 || colIdx === 4 ? 'number' : 'text';
-
-  if (colIdx === 4) {
-    const parsed = parseSalary(initial);
-
-    input.value = Number.isNaN(parsed) ? '' : String(parsed);
-  } else {
-    input.value = initial;
-  }
-  td.textContent = '';
-  td.append(input);
-  input.focus();
-
-  editing = {
-    td,
-    input,
-    initial,
-    colIdx,
+    return (
+      '$' +
+      Number(value)
+        .toFixed(0)
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    );
   };
 
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      finishEdit(true);
-    }
+  const textToMoneyNumber = (text) =>
+    Number(String(text).replace(/[^\d.-]/g, '')) || 0;
 
-    if (e.key === 'Escape') {
-      finishEdit(false);
-    }
-  });
-  input.addEventListener('blur', () => finishEdit(true), { once: true });
-};
+  const table = $('table');
+  const tbody = table ? $('tbody', table) : null;
 
-const finishEdit = (save) => {
-  if (!editing) {
+  if (!table || !tbody) {
     return;
   }
 
-  const { td, input, initial, colIdx } = editing;
-  let nextText = initial;
+  const currentSort = { index: null, dir: 1 };
 
-  if (save) {
-    const val = input.value.trim();
+  function sortBy(index, dir) {
+    currentSort.index = index;
+    currentSort.dir = dir;
 
-    if (val !== '') {
-      if (colIdx === 4) {
-        nextText = formatSalary(Number(val));
-      } else if (colIdx === 3) {
-        nextText = String(Number(val));
-      } else {
-        nextText = val;
+    const rows = $$('tr', tbody);
+    const getCellValue = (tr, idx) => tr.children[idx].textContent.trim();
+
+    const compare = (a, b) => {
+      const vaRaw = getCellValue(a, index);
+      const vbRaw = getCellValue(b, index);
+
+      const sa = vaRaw.replace(/[^0-9.-]/g, '');
+      const sb = vbRaw.replace(/[^0-9.-]/g, '');
+      const isNumA = sa !== '' && /\d/.test(sa);
+      const isNumB = sb !== '' && /\d/.test(sb);
+
+      if (isNumA && isNumB) {
+        return (Number(sa) - Number(sb)) * dir;
       }
+
+      return (
+        vaRaw.localeCompare(vbRaw, undefined, { sensitivity: 'base' }) * dir
+      );
+    };
+
+    rows.sort(compare).forEach((tr) => tbody.appendChild(tr));
+  }
+
+  const headerIndex = (th) => [...th.parentElement.children].indexOf(th);
+
+  function onHeaderClick(e) {
+    const th = e.target.closest('th');
+
+    if (!th || !table.contains(th)) {
+      return;
+    }
+
+    const index = headerIndex(th);
+
+    if (currentSort.index === index) {
+      sortBy(index, -currentSort.dir);
+    } else {
+      sortBy(index, 1);
     }
   }
-  td.textContent = nextText;
-  editing = null;
-};
 
-tbody.addEventListener('dblclick', (e) => {
-  const td = e.target.closest('td');
+  function onHeaderDblClick(e) {
+    const th = e.target.closest('th');
 
-  if (td) {
-    startEdit(td);
+    if (!th || !table.contains(th)) {
+      return;
+    }
+
+    const index = headerIndex(th);
+
+    sortBy(index, -1);
   }
+
+  table.addEventListener('click', (e) => {
+    if (e.target.closest('thead th') || e.target.closest('tfoot th')) {
+      onHeaderClick(e);
+    }
+  });
+
+  table.addEventListener('dblclick', (e) => {
+    if (e.target.closest('thead th') || e.target.closest('tfoot th')) {
+      onHeaderDblClick(e);
+    }
+  });
+
+  tbody.addEventListener('click', (e) => {
+    const tr = e.target.closest('tr');
+
+    if (!tr) {
+      return;
+    }
+    $$('.active', tbody).forEach((row) => row.classList.remove('active'));
+    tr.classList.add('active');
+  });
+
+  const pushNotification = (posTop, posRight, title, description, type) => {
+    let n = $('[data-qa="notification"]');
+
+    if (!n) {
+      n = document.createElement('div');
+      n.setAttribute('data-qa', 'notification');
+      n.className = 'notification';
+      document.body.appendChild(n);
+    }
+    n.classList.remove('success', 'error', 'warning');
+    n.classList.add(type);
+    n.style.top = `${posTop}px`;
+    n.style.right = `${posRight}px`;
+    n.innerHTML = '';
+
+    const h2 = document.createElement('h2');
+
+    h2.className = 'title';
+    h2.textContent = title;
+
+    const p = document.createElement('p');
+
+    p.textContent = description;
+
+    n.append(h2, p);
+  };
+
+  function buildForm() {
+    const form = document.createElement('form');
+
+    form.className = 'new-employee-form';
+
+    form.innerHTML = `
+      <fieldset>
+        <legend>New employee</legend>
+        <label>Name:
+          <input data-qa="name" name="name" type="text" />
+        </label>
+        <label>Position:
+          <input data-qa="position" name="position" type="text" />
+        </label>
+        <label>Office:
+          <select data-qa="office" name="office">
+            <option value="Tokyo">Tokyo</option>
+            <option value="Singapore">Singapore</option>
+            <option value="London">London</option>
+            <option value="New York">New York</option>
+            <option value="Edinburgh">Edinburgh</option>
+            <option value="San Francisco">San Francisco</option>
+          </select>
+        </label>
+        <label>Age:
+          <input data-qa="age" name="age" type="number" inputmode="numeric" />
+        </label>
+        <label>Salary:
+          <input data-qa="salary" name="salary" type="number" inputmode="numeric" />
+        </label>
+        <button type="submit">Save to table</button>
+      </fieldset>
+    `;
+    table.insertAdjacentElement('afterend', form);
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const empName = form.name.value.trim();
+      const position = form.position.value.trim();
+      const office = form.office.value;
+      const ageStr = String(form.age.value).trim();
+      const salaryStr = String(form.salary.value).trim();
+
+      if (
+        !empName ||
+        !position ||
+        !office ||
+        ageStr === '' ||
+        salaryStr === ''
+      ) {
+        pushNotification(10, 10, 'Помилка', 'Усі поля обовʼязкові.', 'error');
+
+        return;
+      }
+
+      if (empName.length < 4) {
+        pushNotification(
+          10,
+          10,
+          'Помилка',
+          'Name має містити щонайменше 4 літери.',
+          'error',
+        );
+
+        return;
+      }
+
+      const age = Number(ageStr);
+      const salary = Number(salaryStr);
+
+      if (!Number.isFinite(age) || age < 18 || age > 90) {
+        pushNotification(
+          10,
+          10,
+          'Помилка',
+          'Age має бути числом від 18 до 90.',
+          'error',
+        );
+
+        return;
+      }
+
+      if (!Number.isFinite(salary) || salary <= 0) {
+        pushNotification(
+          10,
+          10,
+          'Помилка',
+          'Salary має бути додатнім числом.',
+          'error',
+        );
+
+        return;
+      }
+
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td>${empName}</td>
+        <td>${position}</td>
+        <td>${office}</td>
+        <td>${Math.trunc(age)}</td>
+        <td>${moneyToText(salary)}</td>
+      `;
+      tbody.appendChild(tr);
+
+      pushNotification(
+        10,
+        10,
+        'Успіх',
+        'Співробітника додано до таблиці.',
+        'success',
+      );
+      form.reset();
+    });
+  }
+  buildForm();
+
+  let editing = null;
+
+  function beginEdit(td) {
+    if (editing) {
+      endEdit(true);
+    }
+
+    const oldText = td.textContent;
+    const input = document.createElement('input');
+
+    input.className = 'cell-input';
+    input.type = 'text';
+
+    input.value =
+      td.cellIndex === 4 ? String(textToMoneyNumber(oldText)) : oldText;
+
+    td.textContent = '';
+    td.appendChild(input);
+    input.focus();
+
+    input.addEventListener('blur', () => endEdit(true));
+
+    editing = { td, oldText, input };
+  }
+
+  function endEdit(save) {
+    if (!editing) {
+      return;
+    }
+
+    const { td, oldText, input } = editing;
+    const newVal = input.value.trim();
+
+    if (!save || newVal === '') {
+      td.textContent = oldText;
+    } else {
+      if (td.cellIndex === 3) {
+        const num = Number(newVal);
+
+        td.textContent = Number.isFinite(num)
+          ? String(Math.trunc(num))
+          : oldText;
+      } else if (td.cellIndex === 4) {
+        const num = Number(newVal);
+
+        td.textContent = Number.isFinite(num) ? moneyToText(num) : oldText;
+      } else {
+        td.textContent = newVal;
+      }
+    }
+    editing = null;
+  }
+
+  tbody.addEventListener('dblclick', (e) => {
+    const td = e.target.closest('td');
+
+    if (!td) {
+      return;
+    }
+    beginEdit(td);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!editing) {
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      endEdit(true);
+    } else if (e.key === 'Escape') {
+      endEdit(false);
+    }
+  });
 });
